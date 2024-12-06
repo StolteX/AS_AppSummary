@@ -29,14 +29,14 @@ Private Sub B4XPage_Created (Root1 As B4XView)
 	
 	AS_AppSummary1.SetTitleText("Welcome to"," Parcel ","!")
 	
-'	AS_AppSummary1.AddItem("Supported worldwide","With more than 320 delivery agents supported, you can be sure that your next delivery will be tracked via Parcel.",Null)
-'	AS_AppSummary1.AddItem("Powerful functions","Daily payers, barcode scanners, card support and many other functions make tracking much easier.",Null)
-'	AS_AppSummary1.AddItem("Push notifications","With a Premium subscription, receive push notifications when there is news about the delivery.",Null)
+'	AS_AppSummary1.AddItem("Supported worldwide","With more than 320 delivery agents supported, you can be sure that your next delivery will be tracked via Parcel.",Null,"")
+'	AS_AppSummary1.AddItem("Powerful functions","Daily payers, barcode scanners, card support and many other functions make tracking much easier.",Null,"")
+'	AS_AppSummary1.AddItem("Push notifications","With a Premium subscription, receive push notifications when there is news about the delivery.",Null,"")
 	
-	AS_AppSummary1.AddItem("Supported worldwide","With more than 320 delivery agents supported, you can be sure that your next delivery will be tracked via Parcel.",AS_AppSummary1.FontToBitmap(Chr(0xE894),True,35,AS_AppSummary1.ItemIconProperties.Color))
-	AS_AppSummary1.AddItem("Powerful functions","Daily payers, barcode scanners, card support and many other functions make tracking much easier.",AS_AppSummary1.FontToBitmap(Chr(0xF02A),False,35,AS_AppSummary1.ItemIconProperties.Color))
-	AS_AppSummary1.AddItem("Push notifications","With a Premium subscription, receive push notifications when there is news about the delivery.",AS_AppSummary1.FontToBitmap(Chr(0xE7F4),True,35,AS_AppSummary1.ItemIconProperties.Color))
-	
+	AS_AppSummary1.AddItem("Supported worldwide","With more than 320 delivery agents supported, you can be sure that your next delivery will be tracked via Parcel.",AS_AppSummary1.FontToBitmap(Chr(0xE894),True,35,AS_AppSummary1.ItemIconProperties.Color),"")
+	AS_AppSummary1.AddItem("Powerful functions","Daily payers, barcode scanners, card support and many other functions make tracking much easier.",AS_AppSummary1.FontToBitmap(Chr(0xF02A),False,35,AS_AppSummary1.ItemIconProperties.Color),"")
+	AS_AppSummary1.AddItem("Push notifications","With a Premium subscription, receive push notifications when there is news about the delivery.",AS_AppSummary1.FontToBitmap(Chr(0xE7F4),True,35,AS_AppSummary1.ItemIconProperties.Color),"")
+
 	AS_AppSummary1.ConfirmButtonText = "Start using Parcel"
 	
 	AS_AppSummary1.Refresh
@@ -53,4 +53,8 @@ End Sub
 
 Private Sub AS_AppSummary1_ConfirmButtonClick
 	Log("ConfirmButtonClick")
+End Sub
+
+Private Sub AS_AppSummary1_ItemClicked(Item As AS_AppSummary_Item)
+	Log("ItemClicked: " & Item.Name)
 End Sub

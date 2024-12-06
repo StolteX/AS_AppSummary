@@ -12,23 +12,48 @@ V1.01
 	-Add AddItemAdvanced
 	-Add get ConfirmButton
 	-Title Text BugFix
+V2.00
+	-BugFixes
+	-Breaking Change - Add Parameter "Value" to AddItem
+	-Changed the items base to xCustomListView
+		-You can now add as many items as you like, it is scrollable
+	-Add get and set TitleTop
+	-Add get and set TitleGap - Gap between list and title
+	-Add set Theme
+	-Add get Theme_Dark
+	-Add get Theme_Light
+	-Add Designer Property ThemeChangeTransition
+		-Default: Fade
+	-Add GetItemAt
+	-Add Event ItemClicked
+	-Add Designer Property HapticFeedback
+		-Default: True
+	-Add Event CustomDrawItem
+	-Add Type AS_AppSummary_ItemViews
+	-Add GetItemViews - Gets the item views for a value
+	-Add GetItemViews2 - Gets the item views for a index
 #End If
 
+#DesignerProperty: Key: ThemeChangeTransition, DisplayName: ThemeChangeTransition, FieldType: String, DefaultValue: Fade, List: None|Fade
+#DesignerProperty: Key: HapticFeedback, DisplayName: HapticFeedback, FieldType: Boolean, DefaultValue: True
 #DesignerProperty: Key: BackgroundColor, DisplayName: Background Color, FieldType: Color, DefaultValue: 0xFF131416
 #DesignerProperty: Key: TitleTextColor, DisplayName: Title Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
 #DesignerProperty: Key: TitleColoredTextColor, DisplayName: Title Colored Text Color, FieldType: Color, DefaultValue: 0xFF2D8879
 #DesignerProperty: Key: ItemNameTextColor, DisplayName: Item Name Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
 #DesignerProperty: Key: ItemDescriptionTextColor, DisplayName: Item Description Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
-#DesignerProperty: Key: ItemIconColor, DisplayName: Item Icon Color, FieldType: Color, DefaultValue: 0xFF2D8879
-#DesignerProperty: Key: ConfirmButtonColor, DisplayName: Confirm Button Color, FieldType: Color, DefaultValue: 0xFF2D8879
-#DesignerProperty: Key: ConfirmButtonTextColor, DisplayName: Confirm Button Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
+#DesignerProperty: Key: ItemIconColor, DisplayName: Item Icon Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
+#DesignerProperty: Key: ConfirmButtonColor, DisplayName: Confirm Button Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
+#DesignerProperty: Key: ConfirmButtonTextColor, DisplayName: Confirm Button Text Color, FieldType: Color, DefaultValue: 0xFF000000
 
 #Event: ConfirmButtonClick
+#Event: CustomDrawItem(Item As AS_AppSummary_Item,ItemViews As AS_AppSummary_ItemViews)
+#Event: ItemClicked(Item As AS_AppSummary_Item)
 
 Sub Class_Globals
 	
-	Type AS_AppSummary_Item(Name As String, Description As String, Icon As B4XBitmap)
+	Type AS_AppSummary_Item(Name As String, Description As String, Icon As B4XBitmap,Value As Object)
 	Type AS_AppSummary_ItemIconProperties(Width As Float,Color As Int,BackgroundColor As Int,CornerRadius As Float,Alignment As String,SideGap As Float)
+	Type AS_AppSummary_ItemViews(BackgroundPanel As B4XView,ItemBackgroundPanel As B4XView,NameLabel As B4XView,DescriptionLabel As B4XView,IconImageView As B4XView)
 	
 	Private g_ItemIconProperties As AS_AppSummary_ItemIconProperties
 	
@@ -38,18 +63,22 @@ Sub Class_Globals
 	Private xui As XUI 'ignore
 	Public Tag As Object
 	
-	Private lst_Items As List
+	Private xclv_Main As CustomListView
+	
+	Private xiv_RefreshImage As B4XView
 	
 	Private xbblbl_Title As BBCodeView
 	Private m_TextEngine As BCTextEngine
 	
-	Private xpnl_Items As B4XView
 	Private xlbl_Start As B4XView
 	
+	Private m_ThemeChangeTransition As String
 	Private m_TitleGap As Float = 20dip
+	Private m_TitleTop As Float = 100dip
 	Private m_GapBetweenItems As Float = 30dip
 	Private m_SideGap As Float = 20dip
 	Private m_ItemsHasImage As Boolean = False
+	Private m_HapticFeedback As Boolean
 	
 	Private m_BackgroundColor As Int
 	Private m_TitleTextColor As Int
@@ -58,6 +87,79 @@ Sub Class_Globals
 	Private m_ItemDescriptionTextColor As Int
 	Private m_ConfirmButtonColor As Int
 	Private m_ConfirmButtonTextColor As Int
+	Private m_Text1 As String
+	Private m_ColoredText As String
+	Private m_Text2 As String
+	
+	Type AS_AppSummary_Theme(BackgroundColor As Int,TitleTextColor As Int,TitleColoredTextColor As Int,ItemNameTextColor As Int,ItemDescriptionTextColor As Int,ItemIconColor As Int,ConfirmButtonColor As Int,ConfirmButtonTextColor As Int)
+	
+End Sub
+
+Public Sub setTheme(Theme As AS_AppSummary_Theme)
+	
+	xiv_RefreshImage.SetBitmap(mBase.Snapshot)
+	xiv_RefreshImage.SetVisibleAnimated(0,True)
+
+	m_TitleTextColor = Theme.TitleTextColor
+	m_TitleColoredTextColor = Theme.TitleColoredTextColor
+	m_ItemNameTextColor = Theme.ItemNameTextColor
+	m_ItemDescriptionTextColor = Theme.ItemDescriptionTextColor
+	g_ItemIconProperties.Color = Theme.ItemIconColor
+	m_ConfirmButtonColor = Theme.ConfirmButtonColor
+	m_ConfirmButtonTextColor = Theme.ConfirmButtonTextColor
+	
+	setBackgroundColor(Theme.BackgroundColor)
+	
+	Sleep(0)
+	
+	For i = 0 To xclv_Main.Size -1
+		xclv_Main.GetPanel(i).RemoveAllViews
+	Next
+	xclv_Main.Refresh
+
+	Refresh
+
+	Select m_ThemeChangeTransition
+		Case "None"
+			xiv_RefreshImage.SetVisibleAnimated(0,False)
+		Case "Fade"
+			Sleep(250)
+			xiv_RefreshImage.SetVisibleAnimated(250,False)
+	End Select
+	
+End Sub
+
+Public Sub getTheme_Dark As AS_AppSummary_Theme
+	
+	Dim Theme As AS_AppSummary_Theme
+	Theme.Initialize
+	Theme.BackgroundColor = xui.Color_ARGB(255,19, 20, 22)
+	Theme.TitleTextColor = xui.Color_White
+	Theme.TitleColoredTextColor = xui.Color_ARGB(255,45, 136, 121)
+	Theme.ItemNameTextColor = xui.Color_White
+	Theme.ItemDescriptionTextColor = xui.Color_White
+	Theme.ItemIconColor = xui.Color_White
+	Theme.ConfirmButtonColor = xui.Color_White
+	Theme.ConfirmButtonTextColor = xui.Color_Black
+	
+	Return Theme
+	
+End Sub
+
+Public Sub getTheme_Light As AS_AppSummary_Theme
+	
+	Dim Theme As AS_AppSummary_Theme
+	Theme.Initialize
+	Theme.BackgroundColor = xui.Color_White
+	Theme.TitleTextColor = xui.Color_Black
+	Theme.TitleColoredTextColor = xui.Color_ARGB(255,45, 136, 121)
+	Theme.ItemNameTextColor = xui.Color_Black
+	Theme.ItemDescriptionTextColor = xui.Color_Black
+	Theme.ItemIconColor = xui.Color_Black
+	Theme.ConfirmButtonColor = xui.Color_Black
+	Theme.ConfirmButtonTextColor = xui.Color_White
+	
+	Return Theme
 	
 End Sub
 
@@ -70,6 +172,8 @@ Private Sub IniProps(Props As Map)
 	m_ItemDescriptionTextColor = xui.PaintOrColorToColor(Props.Get("ItemDescriptionTextColor"))
 	m_ConfirmButtonColor = xui.PaintOrColorToColor(Props.Get("ConfirmButtonColor"))
 	m_ConfirmButtonTextColor = xui.PaintOrColorToColor(Props.Get("ConfirmButtonTextColor"))
+	m_ThemeChangeTransition= Props.GetDefault("ThemeChangeTransition","Fade")
+	m_HapticFeedback = Props.GetDefault("HapticFeedback",True)
 	
 	g_ItemIconProperties = CreateAS_AppSummary_ItemIconProperties(30dip,xui.PaintOrColorToColor(Props.Get("ItemIconColor")),xui.Color_Transparent,30dip/2,"Center",20dip)
 End Sub
@@ -77,7 +181,6 @@ End Sub
 Public Sub Initialize (Callback As Object, EventName As String)
 	mEventName = EventName
 	mCallBack = Callback
-	lst_Items.Initialize
 End Sub
 
 'Base type must be Object
@@ -87,6 +190,12 @@ Public Sub DesignerCreateView (Base As Object, Lbl As Label, Props As Map)
     mBase.Tag = Me 
 
 	IniProps(Props)
+
+	mBase.Color = m_BackgroundColor
+
+	Dim xpnl_ListBackground As B4XView = xui.CreatePanel("")
+	mBase.AddView(xpnl_ListBackground,0,0,mBase.Width,mBase.Height)
+	xclv_Main = ini_xclv("xclv_Main",xpnl_ListBackground,xui.IsB4J)
 
 	Dim xpnl_TitleBase As B4XView = xui.CreatePanel("")
 	xpnl_TitleBase.SetLayoutAnimated(0,0,0,mBase.Width,2000dip)
@@ -104,10 +213,8 @@ Public Sub DesignerCreateView (Base As Object, Lbl As Label, Props As Map)
 	xbblbl_Title.Paragraph.Initialize
 
 	xlbl_Start = CreateLabel("xlbl_Start")
-	xpnl_Items = xui.CreatePanel("")
 
 	mBase.AddView(xbblbl_Title.mBase,0,0,mBase.Width,100dip)
-	mBase.AddView(xpnl_Items,0,0,mBase.Width,20dip)
 	mBase.AddView(xlbl_Start,0,mBase.Height - 50dip,mBase.Width,50dip)
 	
 	xlbl_Start.Text = ""
@@ -116,27 +223,51 @@ Public Sub DesignerCreateView (Base As Object, Lbl As Label, Props As Map)
 	xlbl_Start.SetTextAlignment("CENTER","CENTER")
 	xlbl_Start.SetColorAndBorder(xui.Color_White,0,0,10dip)
 	
+	xiv_RefreshImage = CreateImageView("")
+	xiv_RefreshImage.Visible = False
+	mBase.AddView(xiv_RefreshImage,0,0,mBase.Width,mBase.Height)
+	
+	#If B4A
+	Base_Resize(mBase.Width,mBase.Height)
+	#End If
+	
 End Sub
 
 
 Public Sub SetTitleText(Text1 As String,ColoredText As String,Text2 As String)
+	m_Text1 = Text1
+	m_Text2 = Text2
+	m_ColoredText = ColoredText
 	xbblbl_Title.Text = $"[Alignment=Left][color=#${ColorToHex(m_TitleTextColor)}][TextSize=35][b]${Text1}[color=#${ColorToHex(m_TitleColoredTextColor)}]${ColoredText}[/color]${Text2}[/b][/TextSize][/color][/Alignment]"$
 	xbblbl_Title.ParseAndDraw
 End Sub
 
-Private Sub Base_Resize (Width As Double, Height As Double)
-  
+Public Sub Base_Resize (Width As Double, Height As Double)
+	mBase.SetLayoutAnimated(0,mBase.Left,mBase.Top,Width,Height)
+	xiv_RefreshImage.SetLayoutAnimated(0,0,0,Width,Height)
+	
+	xbblbl_Title.mBase.Top = m_TitleTop
+	xlbl_Start.SetLayoutAnimated(0,m_SideGap,Height - 50dip,Width - m_SideGap*2,50dip)
+	
+	Dim ListTop As Float = xbblbl_Title.mBase.Top + xbblbl_Title.mBase.Height + m_TitleGap
+	Dim ListHeight As Float = xlbl_Start.Top - ListTop - m_TitleGap
+	
+	xclv_Main.AsView.SetLayoutAnimated(0,0,ListTop,Width,ListHeight)
+	xclv_Main.Base_Resize(Width,ListHeight)
+	
 End Sub
 
-Public Sub AddItem(Name As String,Description As String,Icon As B4XBitmap)
+Public Sub AddItem(Name As String,Description As String,Icon As B4XBitmap,Value As Object) As AS_AppSummary_Item
 	
 	Dim Item As AS_AppSummary_Item
 	Item.Initialize
 	Item.Name = Name
 	Item.Description = Description
 	Item.Icon = Icon
+	Item.Value = Value
 	 
 	AddItemIntern(Item)
+	Return Item
 	
 End Sub
 
@@ -147,110 +278,176 @@ End Sub
 Private Sub AddItemIntern(Item As AS_AppSummary_Item)
 	
 	If Item.Icon.IsInitialized Then m_ItemsHasImage = True
-	 
-	lst_Items.Add(Item)
+	
+	Dim xpnl_Background As B4XView = xui.CreatePanel("")
+	xpnl_Background.Color = m_BackgroundColor
+	xpnl_Background.Height = 50dip
+	
+	xclv_Main.Add(xpnl_Background,Item)
+	
+End Sub
+
+Private Sub BuildItem(xpnl_Background As B4XView,Item As AS_AppSummary_Item)
+	
+	Dim IconLeft As Float = 5dip
+	Dim SideGap4Icon As Float = IIf(m_ItemsHasImage,g_ItemIconProperties.Width + g_ItemIconProperties.SideGap + IconLeft,0)
 	
 	Dim xpnl_ItemBackground As B4XView = xui.CreatePanel("")
-	xpnl_Items.AddView(xpnl_ItemBackground,0,0,mBase.Width,10dip)
+	xpnl_Background.AddView(xpnl_ItemBackground,m_SideGap,0,mBase.Width - m_SideGap*2,10dip)
+'	xpnl_ItemBackground.Color = xui.Color_ARGB(255,32, 33, 37)
+'	xpnl_Background.Color = xui.Color_Red
 	
 	Dim xlbl_Name As B4XView = CreateLabel("")
 	Dim xlbl_Description As B4XView = CreateLabel("")
-	Dim xiv As B4XView = CreateImageView
+	Dim xiv_Icon As B4XView = CreateImageView("")
 	
 	
 	xpnl_ItemBackground.AddView(xlbl_Name,0,0,2dip,2dip)
 	xpnl_ItemBackground.AddView(xlbl_Description,0,0,2dip,2dip)
-	xpnl_ItemBackground.AddView(xiv,0,0,2dip,2dip)
-	
-End Sub
-
-
-Public Sub ClearItems
-	lst_Items.Clear
-	xpnl_Items.RemoveAllViews
-End Sub
-
-Public Sub Refresh
-	
-	mBase.Color = m_BackgroundColor
-	xbblbl_Title.mBase.Color = m_BackgroundColor
-	xlbl_Start.TextColor = m_ConfirmButtonTextColor
-	xlbl_Start.SetColorAndBorder(m_ConfirmButtonColor,0,0,10dip)
-	
-	xbblbl_Title.mBase.SetLayoutAnimated(0,m_SideGap,0,mBase.Width - m_SideGap*2,2000dip)
-	xbblbl_Title.ParseAndDraw
-	Dim ContentHeight As Int = Min(xbblbl_Title.Paragraph.Height / m_TextEngine.mScale + xbblbl_Title.Padding.Top + xbblbl_Title.Padding.Bottom, xbblbl_Title.mBase.Height)
-	xbblbl_Title.mBase.SetLayoutAnimated(0,m_SideGap,0,mBase.Width - m_SideGap*2,ContentHeight)
-	
-	Dim SideGap4Icon As Float = IIf(m_ItemsHasImage,g_ItemIconProperties.Width + g_ItemIconProperties.SideGap,0)
-	
-	For i = 0 To lst_Items.Size -1
+	xpnl_ItemBackground.AddView(xiv_Icon,0,0,2dip,2dip)
 		
-		Dim Item As AS_AppSummary_Item = lst_Items.Get(i)
+	xlbl_Name.Text = Item.Name
+	xlbl_Name.TextColor = m_ItemNameTextColor
+	xlbl_Name.Font = xui.CreateDefaultBoldFont(20)
+	xlbl_Name.SetTextAlignment("CENTER","LEFT")
 		
-		Dim xpnl_ItemBackground As B4XView = xpnl_Items.GetView(i)
-	
-		Dim xlbl_Name As B4XView = xpnl_ItemBackground.GetView(0)
-		Dim xlbl_Description As B4XView = xpnl_ItemBackground.GetView(1)
-		Dim xiv_Icon As B4XView = xpnl_ItemBackground.GetView(2)
-		
-		xlbl_Name.Text = Item.Name
-		xlbl_Name.TextColor = m_ItemNameTextColor
-		xlbl_Name.Font = xui.CreateDefaultBoldFont(20)
-		xlbl_Name.SetTextAlignment("CENTER","LEFT")
-		
-		xlbl_Description.Text = Item.Description
-		xlbl_Description.TextColor = m_ItemDescriptionTextColor
-		xlbl_Description.Font = xui.CreateDefaultFont(17)
-		xlbl_Description.SetTextAlignment("CENTER","LEFT")
+	xlbl_Description.Text = Item.Description
+	xlbl_Description.TextColor = m_ItemDescriptionTextColor
+	xlbl_Description.Font = xui.CreateDefaultFont(17)
+	xlbl_Description.SetTextAlignment("CENTER","LEFT")
 		
 	#If B4I
-		xlbl_Description.As(Label).Multiline = True
+	xlbl_Description.As(Label).Multiline = True
+	#Else If B4J
+	xlbl_Description.As(Label).WrapText = True
+	#Else
+	xlbl_Description.As(Label).SingleLine = False
 	#End If
 		
-		xlbl_Name.Width = mBase.Width - m_SideGap*2 - SideGap4Icon
-		xlbl_Description.Width = mBase.Width - m_SideGap*2 - SideGap4Icon
+	xlbl_Name.Width = xpnl_ItemBackground.Width - SideGap4Icon
+	xlbl_Description.Width = xpnl_ItemBackground.Width - SideGap4Icon
 
-		xlbl_Name.SetLayoutAnimated(0,SideGap4Icon,0,xlbl_Name.Width,MeasureMultilineTextHeight(xlbl_Name))
-		xlbl_Description.SetLayoutAnimated(0,SideGap4Icon,xlbl_Name.Height,xlbl_Description.Width,MeasureMultilineTextHeight(xlbl_Description))
-		
-		xpnl_ItemBackground.SetLayoutAnimated(0,m_SideGap,IIf(i=0,0,xpnl_Items.GetView(i-1).Top + xpnl_Items.GetView(i-1).Height),mBase.Width - m_SideGap*2,xlbl_Name.Height + xlbl_Description.Height + m_GapBetweenItems)
+	xlbl_Name.SetLayoutAnimated(0,SideGap4Icon,0,xlbl_Name.Width,MeasureMultilineTextHeight(xlbl_Name))
+	xlbl_Description.SetLayoutAnimated(0,SideGap4Icon,xlbl_Name.Height,xlbl_Description.Width,MeasureMultilineTextHeight(xlbl_Description))
 	
-		If m_ItemsHasImage And Item.Icon.IsInitialized Then
+	xpnl_Background.Height = xlbl_Name.Height + xlbl_Description.Height + IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems)
+	xpnl_ItemBackground.Height = xpnl_Background.Height - IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems)
+	xpnl_ItemBackground.Top = IIf(xclv_Main.Size=0,0, xpnl_Background.Height/2 - xpnl_ItemBackground.Height/2)
+	
+	If m_ItemsHasImage And Item.Icon.IsInitialized Then
 			
-			Select g_ItemIconProperties.Alignment
-				Case "Top"
-					xiv_Icon.SetLayoutAnimated(0,0,0,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
-				Case "Center"
-					xiv_Icon.SetLayoutAnimated(0,0,(xpnl_ItemBackground.Height-m_GapBetweenItems)/2 - g_ItemIconProperties.Width/2,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
-				Case "Bottom"
-					xiv_Icon.SetLayoutAnimated(0,0,(xpnl_ItemBackground.Height-m_GapBetweenItems) - g_ItemIconProperties.Width,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
-			End Select
+		Select g_ItemIconProperties.Alignment
+			Case "Top"
+				xiv_Icon.SetLayoutAnimated(0,IconLeft,0,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
+			Case "Center"
+				xiv_Icon.SetLayoutAnimated(0,IconLeft,(xpnl_ItemBackground.Height)/2 - g_ItemIconProperties.Width/2,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
+			Case "Bottom"
+				xiv_Icon.SetLayoutAnimated(0,IconLeft,(xpnl_ItemBackground.Height) - g_ItemIconProperties.Width,g_ItemIconProperties.Width,g_ItemIconProperties.Width)
+		End Select
 			
 			#If B4A OR B4I
-			xiv_Icon.SetBitmap(Item.Icon)
-			TintBmp(xiv_Icon,g_ItemIconProperties.Color)
+		xiv_Icon.SetBitmap(Item.Icon)
+		TintBmp(xiv_Icon,g_ItemIconProperties.Color)
 			#Else
 			xiv_Icon.SetBitmap(ChangeColorBasedOnAlphaLevel(Item.Icon,g_ItemIconProperties.Color))
 			#End If
 			
-		End If
+	End If
 	
-	Next
+	xclv_Main.ResizeItem(xclv_Main.GetItemFromView(xpnl_Background),xpnl_Background.Height)
 	
-	xpnl_Items.Height = xpnl_Items.GetView(xpnl_Items.NumberOfViews -1).Top + xpnl_Items.GetView(xpnl_Items.NumberOfViews -1).Height
-	xpnl_Items.Top = mBase.Height/2 - xpnl_Items.Height/2
-	'xpnl_Items.Color = xui.Color_Red
+	CustomDrawItem(Item,CreateAS_AppSummary_ItemViews(xpnl_Background,xpnl_ItemBackground,xlbl_Name,xlbl_Description,xiv_Icon))
 	
-	xbblbl_Title.mBase.Top = xpnl_Items.Top - m_TitleGap - xbblbl_Title.mBase.Height
+End Sub
+
+Public Sub ClearItems
+	xclv_Main.Clear
+End Sub
+
+Public Sub Refresh
 	
-	xlbl_Start.SetLayoutAnimated(0,m_SideGap,mBase.Height - 50dip,mBase.Width - m_SideGap*2,50dip)
+	Base_Resize(mBase.Width,mBase.Height)
+	
+	mBase.Color = m_BackgroundColor
+	xbblbl_Title.mBase.Color = m_BackgroundColor
+	SetTitleText(m_Text1,m_ColoredText,m_Text2)
+	xlbl_Start.TextColor = m_ConfirmButtonTextColor
+	xlbl_Start.SetColorAndBorder(m_ConfirmButtonColor,0,0,10dip)
+	
+	xbblbl_Title.mBase.SetLayoutAnimated(0,m_SideGap,xbblbl_Title.mBase.Top,mBase.Width - m_SideGap*2,2000dip)
+	xbblbl_Title.ParseAndDraw
+	Dim ContentHeight As Int = Min(xbblbl_Title.Paragraph.Height / m_TextEngine.mScale + xbblbl_Title.Padding.Top + xbblbl_Title.Padding.Bottom, xbblbl_Title.mBase.Height)
+	xbblbl_Title.mBase.SetLayoutAnimated(0,m_SideGap,xbblbl_Title.mBase.Top,mBase.Width - m_SideGap*2,ContentHeight)
+	
 	xbblbl_Title.Padding.Left = 0
 	xbblbl_Title.ParseAndDraw
 	'xbblbl_Title.mBase.Color = xui.Color_Red
 End Sub
 
+Public Sub GetItemAt(Index As Int) As AS_AppSummary_Item
+	Return xclv_Main.GetValue(Index)
+End Sub
+
+'Gets the item views for a value
+Public Sub GetItemViews(Value As Object) As AS_AppSummary_ItemViews
+	For i = 0 To xclv_Main.Size -1
+		Dim Item As AS_AppSummary_Item = xclv_Main.GetValue(i)
+		If Value = Item.Value Then
+			Dim xpnl_Background As B4XView = xclv_Main.GetPanel(i)
+			Dim xpnl_ItemBackground As B4XView = xpnl_Background.GetView(0)
+			Return CreateAS_AppSummary_ItemViews(xpnl_Background,xpnl_ItemBackground,xpnl_ItemBackground.GetView(0),xpnl_ItemBackground.GetView(1),xpnl_ItemBackground.GetView(2))
+		End If
+	Next
+	LogColor("GetItemViews: No item found for value " & Value,xui.Color_Red)
+	Return Null
+End Sub
+
+'Gets the item views for a index
+Public Sub GetItemViews2(Index As Int) As AS_AppSummary_ItemViews
+	Dim xpnl_Background As B4XView = xclv_Main.GetPanel(Index)
+	Dim xpnl_ItemBackground As B4XView = xpnl_Background.GetView(0)
+	Return CreateAS_AppSummary_ItemViews(xpnl_Background,xpnl_ItemBackground,xpnl_ItemBackground.GetView(0),xpnl_ItemBackground.GetView(1),xpnl_ItemBackground.GetView(2))
+End Sub
+
 #Region Properties
+
+Public Sub setHapticFeedback(HapticFeedback As Boolean)
+	m_HapticFeedback = HapticFeedback
+End Sub
+
+Public Sub getHapticFeedback As Boolean
+	Return m_HapticFeedback
+End Sub
+
+'Fade or None
+Public Sub setThemeChangeTransition(ThemeChangeTransition As String)
+	m_ThemeChangeTransition = ThemeChangeTransition
+End Sub
+
+Public Sub getThemeChangeTransition As String
+	Return m_ThemeChangeTransition
+End Sub
+
+'Gap between list and title
+'Default: 20dip
+'Call Refresh if you change something
+Public Sub setTitleGap(TitleGap As Float)
+	m_TitleGap = TitleGap
+End Sub
+
+Public Sub getTitleGap As Float
+	Return m_TitleGap
+End Sub
+
+'Default: 100dip
+'Call Refresh if you change something
+Public Sub setTitleTop(TitleTop As Float)
+	m_TitleTop = TitleTop
+End Sub
+
+Public Sub getTitleTop As Float
+	Return m_TitleTop
+End Sub
 
 'Call Refresh if you change something
 Public Sub getItemIconProperties As AS_AppSummary_ItemIconProperties
@@ -320,8 +517,12 @@ Public Sub getTitleTextColor As Int
 End Sub
 
 'Call Refresh if you change something
-Public Sub setBackgroundColor(Color As Int)
-	m_BackgroundColor = Color
+Public Sub setBackgroundColor(BackgroundColor As Int)
+	m_BackgroundColor = BackgroundColor
+	mBase.Color = BackgroundColor
+	xclv_Main.AsView.Color = BackgroundColor
+	xclv_Main.sv.ScrollViewInnerPanel.Color = BackgroundColor
+	xclv_Main.GetBase.Color = BackgroundColor
 End Sub
 
 Public Sub getBackgroundColor As Int
@@ -332,11 +533,35 @@ End Sub
 
 #Region ViewEvents
 
+Private Sub xclv_Main_VisibleRangeChanged (FirstIndex As Int, LastIndex As Int)
+	Dim ExtraSize As Int = 20
+	For i = 0 To xclv_Main.Size - 1
+		Dim p As B4XView = xclv_Main.GetPanel(i)
+		If i > FirstIndex - ExtraSize And i < LastIndex + ExtraSize Then
+			'visible+
+			If p.NumberOfViews = 0 Then
+				BuildItem(p,xclv_Main.GetValue(i))
+			End If
+		Else
+			'not visible
+			If p.NumberOfViews > 0 Then
+				p.RemoveAllViews
+			End If
+		End If
+	Next
+End Sub
+
+Private Sub xclv_Main_ItemClick (Index As Int, Value As Object)
+	If m_HapticFeedback Then XUIViewsUtils.PerformHapticFeedback(xclv_Main.GetPanel(Index))
+	ItemClicked(Value)
+End Sub
+
 #If B4J
 Private Sub xlbl_Start_MouseClicked (EventData As MouseEvent)
 #Else
 Private Sub xlbl_Start_Click
 #End If
+	If m_HapticFeedback Then XUIViewsUtils.PerformHapticFeedback(xlbl_Start)
 	ConfirmButtonClick
 End Sub
 
@@ -350,13 +575,57 @@ Private Sub ConfirmButtonClick
 	End If
 End Sub
 
+Private Sub ItemClicked(Item As AS_AppSummary_Item)
+	If xui.SubExists(mCallBack, mEventName & "_ItemClicked",1) Then
+		CallSub2(mCallBack, mEventName & "_ItemClicked",Item)
+	End If
+End Sub
+
+Private Sub CustomDrawItem(Item As AS_AppSummary_Item,ItemViews As AS_AppSummary_ItemViews)
+	If xui.SubExists(mCallBack, mEventName & "_CustomDrawItem",2) Then
+		CallSub3(mCallBack, mEventName & "_CustomDrawItem",Item,ItemViews)
+	End If
+End Sub
+
 #End Region
 
 #Region Functions
 
-Private Sub CreateImageView As B4XView
+Private Sub ini_xclv(EventName As String,Parent As B4XView,ShowScrollBar As Boolean) As CustomListView
+	Dim tmplbl As Label
+	tmplbl.Initialize("")
+ 
+	Dim clv As CustomListView
+ 
+	Dim tmpmap As Map
+	tmpmap.Initialize
+	tmpmap.Put("DividerColor",0x00FFFFFF)
+	tmpmap.Put("DividerHeight",0)
+	tmpmap.Put("PressedColor",0x00FFFFFF)
+	tmpmap.Put("InsertAnimationDuration",0)
+	tmpmap.Put("ListOrientation","Vertical")
+	tmpmap.Put("ShowScrollBar",False)
+	clv.Initialize(Me,EventName)
+	clv.DesignerCreateView(Parent,tmplbl,tmpmap)
+
+	#If B4I
+	Do While clv.sv.IsInitialized = False
+		'Sleep(0)
+	Loop
+	Dim sv As ScrollView = clv.sv
+	sv.Color = xui.Color_Transparent
+	clv.sv.As(NativeObject).SetField("contentInsetAdjustmentBehavior", 1) 'Always
+	#Else IF B4J
+	clv.sv.As(ScrollPane).Style = "-fx-background:transparent;-fx-background-color:transparent;"
+	#End If
+	
+	Return clv
+	
+End Sub
+
+Private Sub CreateImageView(EventName As String) As B4XView
 	Dim iv As ImageView
-	iv.Initialize("")
+	iv.Initialize(EventName)
 	Return iv
 End Sub
 
@@ -510,7 +779,7 @@ End Sub
 
 #End Region
 
-Public Sub CreateAS_AppSummary_ItemIconProperties (Width As Float, Color As Int, BackgroundColor As Int, CornerRadius As Float, Alignment As String, SideGap As Float) As AS_AppSummary_ItemIconProperties
+Private Sub CreateAS_AppSummary_ItemIconProperties (Width As Float, Color As Int, BackgroundColor As Int, CornerRadius As Float, Alignment As String, SideGap As Float) As AS_AppSummary_ItemIconProperties
 	Dim t1 As AS_AppSummary_ItemIconProperties
 	t1.Initialize
 	t1.Width = Width
@@ -519,5 +788,16 @@ Public Sub CreateAS_AppSummary_ItemIconProperties (Width As Float, Color As Int,
 	t1.CornerRadius = CornerRadius
 	t1.Alignment = Alignment
 	t1.SideGap = SideGap
+	Return t1
+End Sub
+
+Private Sub CreateAS_AppSummary_ItemViews (BackgroundPanel As B4XView, ItemBackgroundPanel As B4XView, NameLabel As B4XView, DescriptionLabel As B4XView, IconImageView As B4XView) As AS_AppSummary_ItemViews
+	Dim t1 As AS_AppSummary_ItemViews
+	t1.Initialize
+	t1.BackgroundPanel = BackgroundPanel
+	t1.ItemBackgroundPanel = ItemBackgroundPanel
+	t1.NameLabel = NameLabel
+	t1.DescriptionLabel = DescriptionLabel
+	t1.IconImageView = IconImageView
 	Return t1
 End Sub
