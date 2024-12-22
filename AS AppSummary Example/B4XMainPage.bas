@@ -37,11 +37,45 @@ Private Sub B4XPage_Created (Root1 As B4XView)
 	AS_AppSummary1.AddItem("Powerful functions","Daily payers, barcode scanners, card support and many other functions make tracking much easier.",AS_AppSummary1.FontToBitmap(Chr(0xF02A),False,35,AS_AppSummary1.ItemIconProperties.Color),"")
 	AS_AppSummary1.AddItem("Push notifications","With a Premium subscription, receive push notifications when there is news about the delivery.",AS_AppSummary1.FontToBitmap(Chr(0xE7F4),True,35,AS_AppSummary1.ItemIconProperties.Color),"")
 
+	AddNewFeatures_V260
+	AddNewFeatures_V250
+
 	AS_AppSummary1.ConfirmButtonText = "Start using Parcel"
 	
 	AS_AppSummary1.Refresh
 	
 End Sub
+
+'V2.6.0
+Private Sub AddNewFeatures_V260
+	
+	Dim NewFeature_V260_1 As AS_AppSummary_Item : NewFeature_V260_1.Initialize
+	NewFeature_V260_1.Name = "V2.6.0 - Note Priorities [Premium]"
+	NewFeature_V260_1.Description = "Assign priorities to your notes with Low, Medium, and High levels, each highlighted with distinct colors for better organization."
+	AS_AppSummary1.AddItemAdvanced(NewFeature_V260_1)
+	
+	Dim NewFeature_V260_2 As AS_AppSummary_Item : NewFeature_V260_2.Initialize
+	NewFeature_V260_2.Name = "V2.6.0 - Note Location"
+	NewFeature_V260_2.Description = "Add location information to your notes, including address details. Automatically capture your current location when creating a note if enabled. Customize the displayed information via settings. Data is fetched using a geolocation API."
+	AS_AppSummary1.AddItemAdvanced(NewFeature_V260_2)
+	
+End Sub
+
+'V2.5.0
+Private Sub AddNewFeatures_V250
+	
+	Dim NewFeature_V250_1 As AS_AppSummary_Item : NewFeature_V250_1.Initialize
+	NewFeature_V250_1.Name = "V2.5.0 - FaceId group support [Premium]"
+	NewFeature_V250_1.Description = "Enhance security by locking specific groups with Face ID. Access is granted only after a successful face scan."
+	AS_AppSummary1.AddItemAdvanced(NewFeature_V250_1)
+	
+	Dim NewFeature_V250_2 As AS_AppSummary_Item : NewFeature_V250_2.Initialize
+	NewFeature_V250_2.Name = "V2.5.0 - Favorite groups with icon [Premium]"
+	NewFeature_V250_2.Description = "Mark your favorite groups with a heart icon for quick and easy identification."
+	AS_AppSummary1.AddItemAdvanced(NewFeature_V250_2)
+	
+End Sub
+
 
 #If B4I
 Private Sub B4XPage_Resize (Width As Int, Height As Int)

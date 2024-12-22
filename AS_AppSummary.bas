@@ -32,6 +32,13 @@ V2.00
 	-Add Type AS_AppSummary_ItemViews
 	-Add GetItemViews - Gets the item views for a value
 	-Add GetItemViews2 - Gets the item views for a index
+V2.01
+	-New Designer Property ItemBackground
+		-Default: None
+		-Card - The item is displayed as a card with round borders
+	-New Type AS_AppSummary_CardProperties
+	-BugFix Title is now multiline
+	-BugFixes and Improvements
 #End If
 
 #DesignerProperty: Key: ThemeChangeTransition, DisplayName: ThemeChangeTransition, FieldType: String, DefaultValue: Fade, List: None|Fade
@@ -39,6 +46,7 @@ V2.00
 #DesignerProperty: Key: BackgroundColor, DisplayName: Background Color, FieldType: Color, DefaultValue: 0xFF131416
 #DesignerProperty: Key: TitleTextColor, DisplayName: Title Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
 #DesignerProperty: Key: TitleColoredTextColor, DisplayName: Title Colored Text Color, FieldType: Color, DefaultValue: 0xFF2D8879
+#DesignerProperty: Key: ItemBackground, DisplayName: ItemBackground, FieldType: String, DefaultValue: None, List: None|Card
 #DesignerProperty: Key: ItemNameTextColor, DisplayName: Item Name Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
 #DesignerProperty: Key: ItemDescriptionTextColor, DisplayName: Item Description Text Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
 #DesignerProperty: Key: ItemIconColor, DisplayName: Item Icon Color, FieldType: Color, DefaultValue: 0xFFFFFFFF
@@ -55,7 +63,10 @@ Sub Class_Globals
 	Type AS_AppSummary_ItemIconProperties(Width As Float,Color As Int,BackgroundColor As Int,CornerRadius As Float,Alignment As String,SideGap As Float)
 	Type AS_AppSummary_ItemViews(BackgroundPanel As B4XView,ItemBackgroundPanel As B4XView,NameLabel As B4XView,DescriptionLabel As B4XView,IconImageView As B4XView)
 	
+	Type AS_AppSummary_CardProperties(CornerRadius As Float,BackgroundColor As Int, TextGap As Float)
+	
 	Private g_ItemIconProperties As AS_AppSummary_ItemIconProperties
+	Private g_CardProperties As AS_AppSummary_CardProperties
 	
 	Private mEventName As String 'ignore
 	Private mCallBack As Object 'ignore
@@ -77,8 +88,8 @@ Sub Class_Globals
 	Private m_TitleTop As Float = 100dip
 	Private m_GapBetweenItems As Float = 30dip
 	Private m_SideGap As Float = 20dip
-	Private m_ItemsHasImage As Boolean = False
 	Private m_HapticFeedback As Boolean
+	Private m_ItemBackground As String
 	
 	Private m_BackgroundColor As Int
 	Private m_TitleTextColor As Int
@@ -91,7 +102,7 @@ Sub Class_Globals
 	Private m_ColoredText As String
 	Private m_Text2 As String
 	
-	Type AS_AppSummary_Theme(BackgroundColor As Int,TitleTextColor As Int,TitleColoredTextColor As Int,ItemNameTextColor As Int,ItemDescriptionTextColor As Int,ItemIconColor As Int,ConfirmButtonColor As Int,ConfirmButtonTextColor As Int)
+	Type AS_AppSummary_Theme(BackgroundColor As Int,TitleTextColor As Int,TitleColoredTextColor As Int,ItemNameTextColor As Int,ItemDescriptionTextColor As Int,ItemIconColor As Int,ConfirmButtonColor As Int,ConfirmButtonTextColor As Int,CardBackgroundColor As Int)
 	
 End Sub
 
@@ -107,6 +118,7 @@ Public Sub setTheme(Theme As AS_AppSummary_Theme)
 	g_ItemIconProperties.Color = Theme.ItemIconColor
 	m_ConfirmButtonColor = Theme.ConfirmButtonColor
 	m_ConfirmButtonTextColor = Theme.ConfirmButtonTextColor
+	g_CardProperties.BackgroundColor = Theme.CardBackgroundColor
 	
 	setBackgroundColor(Theme.BackgroundColor)
 	
@@ -141,6 +153,7 @@ Public Sub getTheme_Dark As AS_AppSummary_Theme
 	Theme.ItemIconColor = xui.Color_White
 	Theme.ConfirmButtonColor = xui.Color_White
 	Theme.ConfirmButtonTextColor = xui.Color_Black
+	Theme.CardBackgroundColor = xui.Color_ARGB(255,31, 34, 37)
 	
 	Return Theme
 	
@@ -158,6 +171,7 @@ Public Sub getTheme_Light As AS_AppSummary_Theme
 	Theme.ItemIconColor = xui.Color_Black
 	Theme.ConfirmButtonColor = xui.Color_Black
 	Theme.ConfirmButtonTextColor = xui.Color_White
+	Theme.CardBackgroundColor = xui.Color_ARGB(255,233, 233, 233)
 	
 	Return Theme
 	
@@ -174,6 +188,12 @@ Private Sub IniProps(Props As Map)
 	m_ConfirmButtonTextColor = xui.PaintOrColorToColor(Props.Get("ConfirmButtonTextColor"))
 	m_ThemeChangeTransition= Props.GetDefault("ThemeChangeTransition","Fade")
 	m_HapticFeedback = Props.GetDefault("HapticFeedback",True)
+	m_ItemBackground = Props.GetDefault("ItemBackground","None").As(String).ToUpperCase
+	
+	g_CardProperties.Initialize
+	g_CardProperties.CornerRadius = 10dip
+	g_CardProperties.BackgroundColor = xui.Color_ARGB(255,31, 34, 37)
+	g_CardProperties.TextGap = 5dip
 	
 	g_ItemIconProperties = CreateAS_AppSummary_ItemIconProperties(30dip,xui.PaintOrColorToColor(Props.Get("ItemIconColor")),xui.Color_Transparent,30dip/2,"Center",20dip)
 End Sub
@@ -277,8 +297,6 @@ End Sub
 
 Private Sub AddItemIntern(Item As AS_AppSummary_Item)
 	
-	If Item.Icon.IsInitialized Then m_ItemsHasImage = True
-	
 	Dim xpnl_Background As B4XView = xui.CreatePanel("")
 	xpnl_Background.Color = m_BackgroundColor
 	xpnl_Background.Height = 50dip
@@ -288,9 +306,9 @@ Private Sub AddItemIntern(Item As AS_AppSummary_Item)
 End Sub
 
 Private Sub BuildItem(xpnl_Background As B4XView,Item As AS_AppSummary_Item)
-	
+
 	Dim IconLeft As Float = 5dip
-	Dim SideGap4Icon As Float = IIf(m_ItemsHasImage,g_ItemIconProperties.Width + g_ItemIconProperties.SideGap + IconLeft,0)
+	Dim SideGap4Icon As Float = IIf(Item.Icon.IsInitialized,g_ItemIconProperties.Width + g_ItemIconProperties.SideGap + IconLeft,0)
 	
 	Dim xpnl_ItemBackground As B4XView = xui.CreatePanel("")
 	xpnl_Background.AddView(xpnl_ItemBackground,m_SideGap,0,mBase.Width - m_SideGap*2,10dip)
@@ -311,6 +329,14 @@ Private Sub BuildItem(xpnl_Background As B4XView,Item As AS_AppSummary_Item)
 	xlbl_Name.Font = xui.CreateDefaultBoldFont(20)
 	xlbl_Name.SetTextAlignment("CENTER","LEFT")
 		
+	#If B4I
+	xlbl_Name.As(Label).Multiline = True
+	#Else If B4J
+	xlbl_Name.As(Label).WrapText = True
+	#Else
+	xlbl_Name.As(Label).SingleLine = False
+	#End If
+
 	xlbl_Description.Text = Item.Description
 	xlbl_Description.TextColor = m_ItemDescriptionTextColor
 	xlbl_Description.Font = xui.CreateDefaultFont(17)
@@ -323,18 +349,35 @@ Private Sub BuildItem(xpnl_Background As B4XView,Item As AS_AppSummary_Item)
 	#Else
 	xlbl_Description.As(Label).SingleLine = False
 	#End If
-		
-	xlbl_Name.Width = xpnl_ItemBackground.Width - SideGap4Icon
-	xlbl_Description.Width = xpnl_ItemBackground.Width - SideGap4Icon
 
-	xlbl_Name.SetLayoutAnimated(0,SideGap4Icon,0,xlbl_Name.Width,MeasureMultilineTextHeight(xlbl_Name))
-	xlbl_Description.SetLayoutAnimated(0,SideGap4Icon,xlbl_Name.Height,xlbl_Description.Width,MeasureMultilineTextHeight(xlbl_Description))
+	Dim Description2NameGap As Float = 2dip
+
+	If m_ItemBackground = getItemBackground_None Then
+		xlbl_Name.Width = xpnl_ItemBackground.Width - SideGap4Icon
+		xlbl_Description.Width = xpnl_ItemBackground.Width - SideGap4Icon
+		
+		xlbl_Name.SetLayoutAnimated(0,SideGap4Icon,0,xlbl_Name.Width,MeasureMultilineTextHeight(xlbl_Name))
+		xlbl_Description.SetLayoutAnimated(0,SideGap4Icon,xlbl_Name.Height + Description2NameGap,xlbl_Description.Width,MeasureMultilineTextHeight(xlbl_Description))
+		
+		xpnl_Background.Height = xlbl_Name.Height + xlbl_Description.Height + IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems) + Description2NameGap
+		xpnl_ItemBackground.Height = xpnl_Background.Height - IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems) + Description2NameGap
+		
+	Else If m_ItemBackground = getItemBackground_Card Then
+		xlbl_Name.Width = xpnl_ItemBackground.Width - SideGap4Icon - g_CardProperties.TextGap*2
+		xlbl_Description.Width = xpnl_ItemBackground.Width - SideGap4Icon - g_CardProperties.TextGap*2
+		
+		xpnl_ItemBackground.SetColorAndBorder(g_CardProperties.BackgroundColor,0,0,g_CardProperties.CornerRadius)
+		xlbl_Name.SetLayoutAnimated(0,SideGap4Icon + g_CardProperties.TextGap,g_CardProperties.TextGap,xlbl_Name.Width,MeasureMultilineTextHeight(xlbl_Name))
+		xlbl_Description.SetLayoutAnimated(0,SideGap4Icon + g_CardProperties.TextGap,xlbl_Name.Height + Description2NameGap + g_CardProperties.TextGap,xlbl_Description.Width,MeasureMultilineTextHeight(xlbl_Description))
 	
-	xpnl_Background.Height = xlbl_Name.Height + xlbl_Description.Height + IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems)
-	xpnl_ItemBackground.Height = xpnl_Background.Height - IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems)
+		xpnl_Background.Height = xlbl_Name.Height + xlbl_Description.Height + IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems) + g_CardProperties.TextGap + Description2NameGap
+		xpnl_ItemBackground.Height = xpnl_Background.Height - IIf(xclv_Main.Size=0, m_GapBetweenItems/2,m_GapBetweenItems) + g_CardProperties.TextGap + Description2NameGap
+		IconLeft = xlbl_Name.Left/2 - g_ItemIconProperties.Width/2
+	End If
+	
 	xpnl_ItemBackground.Top = IIf(xclv_Main.Size=0,0, xpnl_Background.Height/2 - xpnl_ItemBackground.Height/2)
 	
-	If m_ItemsHasImage And Item.Icon.IsInitialized Then
+	If Item.Icon.IsInitialized Then
 			
 		Select g_ItemIconProperties.Alignment
 			Case "Top"
@@ -353,9 +396,11 @@ Private Sub BuildItem(xpnl_Background As B4XView,Item As AS_AppSummary_Item)
 			#End If
 			
 	End If
-	
+
 	xclv_Main.ResizeItem(xclv_Main.GetItemFromView(xpnl_Background),xpnl_Background.Height)
-	
+
+	xpnl_Background.Color = m_BackgroundColor
+
 	CustomDrawItem(Item,CreateAS_AppSummary_ItemViews(xpnl_Background,xpnl_ItemBackground,xlbl_Name,xlbl_Description,xiv_Icon))
 	
 End Sub
@@ -411,6 +456,14 @@ End Sub
 
 #Region Properties
 
+Public Sub setItemBackground(ItemBackground As String)
+	m_ItemBackground = ItemBackground.ToUpperCase
+End Sub
+
+Public Sub getItemBackground As String
+	Return m_ItemBackground
+End Sub
+
 Public Sub setHapticFeedback(HapticFeedback As Boolean)
 	m_HapticFeedback = HapticFeedback
 End Sub
@@ -447,6 +500,10 @@ End Sub
 
 Public Sub getTitleTop As Float
 	Return m_TitleTop
+End Sub
+
+Public Sub getCardProperties As AS_AppSummary_CardProperties
+	Return g_CardProperties
 End Sub
 
 'Call Refresh if you change something
@@ -527,6 +584,18 @@ End Sub
 
 Public Sub getBackgroundColor As Int
 	Return m_BackgroundColor
+End Sub
+
+#End Region
+
+#Region Enums
+
+Public Sub getItemBackground_None As String
+	Return "NONE"
+End Sub
+
+Public Sub getItemBackground_Card As String
+	Return "CARD"
 End Sub
 
 #End Region
